@@ -7,29 +7,24 @@ enum ProbabilityMode {
 }
 
 ## The available items that will be used on a roll for this loot table
-@export var available_items: Array[LootItem] = []:
-	set(items):
-		## Only in case the available items are setted directly 
-		## as appending/removing does not trigger setters https://github.com/godotengine/godot/issues/17310
-		if typeof(items) == TYPE_ARRAY:
-			available_items = PluginUtilities.remove_duplicates(items)
-			mirrored_items = available_items.duplicate()
-			
-			
+@export var available_items: Array[LootItem] = []
 @export var probability_type: ProbabilityMode = ProbabilityMode.Weight:
 	set(value):
 		probability_type = value
 		notify_property_list_changed()
 ## When this is enabled items can be repeated for multiple rolls on this generation
-@export var allow_duplicates: bool = true
+@export var allow_duplicates: bool = false
 ## A little help that is added to the total weight to allow drop more items increasing the chance.
 @export var extra_weight_bias: float = 0.0
-## Max items that this loot table can generate
-@export var items_limit_per_roll: int = 3
-## At least the amount of items will be generated on each roll, it cannot be greater than items_limit_per_roll
-@export var fixed_items_per_roll: int = 1:
+## Max items that this loot table can generate on multiple rolls
+@export var items_limit_per_loot: int = 3:
 	set(value):
-		fixed_items_per_roll = min(value, items_limit_per_roll)
+		items_limit_per_loot = value
+		fixed_items_per_loot = min(fixed_items_per_loot, items_limit_per_loot)
+## The minimum amount of items will be generated on each roll, it cannot be greater than items_limit_per_loot
+@export var fixed_items_per_loot: int = 1:
+	set(value):
+		fixed_items_per_loot = min(value, items_limit_per_loot)
 
 
 var mirrored_items: Array[LootItem] = []
@@ -44,29 +39,69 @@ func _init(items: Array[Variant] = []) -> void:
 	
 	mirrored_items = available_items.duplicate()
 	
+	
+func _ready() -> void:
+	if mirrored_items.is_empty():
+		mirrored_items = available_items.duplicate()
 
-func roll(selected_probability_type: ProbabilityMode = probability_type) -> Array[LootItem]:
+
+func roll(times: int = 10, except: Array[LootItem] = []) -> Array[LootItem]:
 	var items_rolled: Array[LootItem] = []
+	var max_picks: int = min(items_limit_per_loot, mirrored_items.size())
+	times = max(1, times)
 	
-	match selected_probability_type:
-		ProbabilityMode.Weight:
-			pass
-		ProbabilityMode.RollTier:
-			pass
+	for exception_items: LootItem in except:
+		mirrored_items.erase(exception_items)
 	
-	
-	return items_rolled
+	if mirrored_items.size() > 0:
+		match probability_type:
+			ProbabilityMode.Weight:
+				
+				for i in range(times):
+					items_rolled.append_array(roll_items_by_weight(mirrored_items))
+					
+					if items_rolled.size() >= max_picks:
+						break
+					
+				if fixed_items_per_loot > 0:
+					while items_rolled.size() < fixed_items_per_loot and not mirrored_items.is_empty():
+						items_rolled.append_array(roll_items_by_weight(mirrored_items))
+			
+			ProbabilityMode.RollTier:
+				pass
+		
+		## Reset the mirrored items after the multiple shuffles or erased items
+	mirrored_items = available_items.duplicate()
+		
+	return items_rolled.slice(0, max_picks)
 
 
-func _prepare_weight() -> float:
+func roll_items_by_weight(selected_items:  Array[LootItem] = mirrored_items) -> Array[LootItem]:
+	var items_rolled: Array[LootItem] = []
 	var total_weight: float = 0.0
+
+	mirrored_items.shuffle()
+	total_weight = _prepare_weight_on_items(mirrored_items)
+	
+	var roll_result: float = randf_range(0, total_weight)
 	
 	for item: LootItem in mirrored_items:
-		item.reset_accum_weight()
-		
-		total_weight += item.weight
-		item.total_accum_weight = total_weight
+		if roll_result <= item.accum_weight:
+			items_rolled.append(item.duplicate())
+			
+			if not allow_duplicates:
+				mirrored_items.erase(item)
+
+	return items_rolled
 	
+	
+func _prepare_weight_on_items(target_items: Array[LootItem] = mirrored_items) -> float:
+	var total_weight: float = 0.0
+	
+	for item: LootItem in target_items:
+		item.reset_accum_weight()
+		total_weight += item.weight
+		item.accum_weight = total_weight
 	
 	return total_weight
 
@@ -83,10 +118,12 @@ func add_items(items: Array[LootItem] = []) -> void:
 func add_item(item: LootItem) -> void:
 	available_items.append(item)
 	available_items = PluginUtilities.remove_duplicates(available_items)
+	mirrored_items = available_items.duplicate()
 	
 
 func remove_items(items: Array[LootItem] = []) -> void:
 	available_items = available_items.filter(func(item: LootItem): return not item in items)
+	mirrored_items = available_items.duplicate()
 	
 
 func remove_item(item: LootItem) -> void:
