@@ -12,6 +12,10 @@ func _enter_tree() -> void:
 	if not DirAccess.dir_exists_absolute(MyPluginSettings.PluginTemporaryReleaseUpdateDirectoryPath):
 		DirAccess.make_dir_recursive_absolute(MyPluginSettings.PluginTemporaryReleaseUpdateDirectoryPath)
 	
+	add_custom_type("LootieTable", "Node", preload("src/loot_table.gd"), preload("assets/lootie.svg"))
+	add_custom_type("LootItemRarity", "Resource", preload("src/loot_item.gd"), null)
+	add_autoload_singleton("LootieGlobal", "src/lootie_global.gd")
+	
 
 func _exit_tree() -> void:
 	MyPluginSettings.remove_settings()
@@ -19,6 +23,10 @@ func _exit_tree() -> void:
 	if update_notify_tool_instance:
 		update_notify_tool_instance.free()
 		update_notify_tool_instance = null
+		
+	remove_autoload_singleton("LootieGlobal")
+	remove_custom_type("LootItemRarity")
+	remove_custom_type("LootieTable")
 
 ## Update tool referenced from https://github.com/MikeSchulze/gdUnit4/blob/master/addons/gdUnit4
 func _setup_updater() -> void:
