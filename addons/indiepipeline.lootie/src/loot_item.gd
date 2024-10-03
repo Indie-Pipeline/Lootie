@@ -1,8 +1,6 @@
 @tool
 class_name LootItem extends Resource
 
-## Expand here as to adjust it to your game requirements
-enum ItemRarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC, ETERNAL, ABYSSAL, COSMIC, DIVINE} 
 
 ## Unique identifier for this item
 @export var id: String = ""
@@ -19,11 +17,7 @@ enum ItemRarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC, ETERNAL, ABYS
 ## The weight value for this items to appear in a loot, the more the weight, more the chance to be looted
 @export var weight: float = 1.0
 ## The grade of rarity for this item
-@export var grade: ItemRarity = ItemRarity.COMMON
-## The minimum value in range to be available on the roll pick
-@export var min_roll: float
-## The maximum value in range to be available on the roll pick
-@export var max_roll: float
+@export var rarity: LootItemRarity
 
 
 var accum_weight: float = 0.0

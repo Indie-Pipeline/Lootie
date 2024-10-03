@@ -14,7 +14,7 @@ enum ProbabilityMode {
 		notify_property_list_changed()
 ## When this is enabled items can be repeated for multiple rolls on this generation
 @export var allow_duplicates: bool = false
-## A little help that is added to the total weight to allow drop more items increasing the chance.
+## A little bias that is added to the total weight to increase the difficulty to drop more items
 @export var extra_weight_bias: float = 0.0
 ## Max items that this loot table can generate on multiple rolls
 @export var items_limit_per_loot: int = 3:
@@ -60,6 +60,7 @@ func roll(times: int = 10, except: Array[LootItem] = []) -> Array[LootItem]:
 		mirrored_items.erase(exception_items)
 	
 	if mirrored_items.size() > 0:
+		
 		match probability_type:
 			ProbabilityMode.Weight:
 				
@@ -79,6 +80,8 @@ func roll(times: int = 10, except: Array[LootItem] = []) -> Array[LootItem]:
 		## Reset the mirrored items after the multiple shuffles or erased items
 	mirrored_items = available_items.duplicate()
 		
+	items_rolled.shuffle()
+	
 	return items_rolled.slice(0, max_picks)
 
 
@@ -86,17 +89,16 @@ func roll_items_by_weight(selected_items:  Array[LootItem] = mirrored_items) -> 
 	var items_rolled: Array[LootItem] = []
 	var total_weight: float = 0.0
 
-	mirrored_items.shuffle()
 	total_weight = _prepare_weight_on_items(mirrored_items)
+	mirrored_items.shuffle()
 	
 	var roll_result: float = rng.randf_range(0, total_weight)
 	
-	for item: LootItem in mirrored_items:
-		if roll_result <= item.accum_weight:
-			items_rolled.append(item.duplicate())
+	for looted_item: LootItem in mirrored_items.filter(func(item: LootItem): return roll_result <= item.accum_weight):
+		items_rolled.append(looted_item.duplicate())
 			
-			if not allow_duplicates:
-				mirrored_items.erase(item)
+		if not allow_duplicates:
+			mirrored_items.erase(looted_item)
 
 	return items_rolled
 	
@@ -109,7 +111,7 @@ func _prepare_weight_on_items(target_items: Array[LootItem] = mirrored_items) ->
 		total_weight += item.weight
 		item.accum_weight = total_weight
 	
-	return total_weight
+	return total_weight + extra_weight_bias
 
 
 func change_probability_type(new_type: ProbabilityMode) -> void:
