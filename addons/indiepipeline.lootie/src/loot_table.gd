@@ -25,9 +25,13 @@ enum ProbabilityMode {
 @export var fixed_items_per_loot: int = 1:
 	set(value):
 		fixed_items_per_loot = min(value, items_limit_per_loot)
-
+## Set to zero to not use it. This has priority over seed_string. Define a seed for this loot table. Doing so will give you deterministic results across runs
+@export var seed_value: int = 0
+## Set it to empty to not use it. Define a seed string that will be hashed to use for deterministic results
+@export var seed_string: String = ""
 
 var mirrored_items: Array[LootItem] = []
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func _init(items: Array[Variant] = []) -> void:
@@ -43,8 +47,10 @@ func _init(items: Array[Variant] = []) -> void:
 func _ready() -> void:
 	if mirrored_items.is_empty():
 		mirrored_items = available_items.duplicate()
+	
+	_prepare_random_number_generator()
 
-
+		
 func roll(times: int = 10, except: Array[LootItem] = []) -> Array[LootItem]:
 	var items_rolled: Array[LootItem] = []
 	var max_picks: int = min(items_limit_per_loot, mirrored_items.size())
@@ -83,7 +89,7 @@ func roll_items_by_weight(selected_items:  Array[LootItem] = mirrored_items) -> 
 	mirrored_items.shuffle()
 	total_weight = _prepare_weight_on_items(mirrored_items)
 	
-	var roll_result: float = randf_range(0, total_weight)
+	var roll_result: float = rng.randf_range(0, total_weight)
 	
 	for item: LootItem in mirrored_items:
 		if roll_result <= item.accum_weight:
@@ -136,4 +142,10 @@ func _create_from_dictionary(items: Array[Dictionary]= []) -> void:
 		for item: Dictionary in items:
 			available_items.append(LootItem.create_from(item))
 
+		
+func _prepare_random_number_generator() -> void:
+	if seed_value > 0:
+		rng.seed = seed_value
+	elif not seed_string.is_empty():
+		rng.seed = seed_string.hash()
 		

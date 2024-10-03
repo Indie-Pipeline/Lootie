@@ -16,7 +16,7 @@ enum ItemRarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC, ETERNAL, ABYS
 @export var abbreviation : String
 ## A description more detailed about this item
 @export_multiline var description : String
-## The weight value for this items to appear in a loot
+## The weight value for this items to appear in a loot, the more the weight, more the chance to be looted
 @export var weight: float = 1.0
 ## The grade of rarity for this item
 @export var grade: ItemRarity = ItemRarity.COMMON
