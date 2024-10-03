@@ -8,10 +8,14 @@ enum ProbabilityMode {
 
 ## The available items that will be used on a roll for this loot table
 @export var available_items: Array[LootItem] = []:
-	set(value):
-		available_items = value
-		mirrored_items = available_items.duplicate()
-		
+	set(items):
+		## Only in case the available items are setted directly 
+		## as appending/removing does not trigger setters https://github.com/godotengine/godot/issues/17310
+		if typeof(items) == TYPE_ARRAY:
+			available_items = PluginUtilities.remove_duplicates(items)
+			mirrored_items = available_items.duplicate()
+			
+			
 @export var probability_type: ProbabilityMode = ProbabilityMode.Weight:
 	set(value):
 		probability_type = value
@@ -34,18 +38,65 @@ var mirrored_items: Array[LootItem] = []
 func _init(items: Array[Variant] = []) -> void:
 	if not items.is_empty():
 		if typeof(items.front()) == TYPE_DICTIONARY:
-			create_from_dictionary(items)
+			_create_from_dictionary(items)
 		elif items.front() is LootItem:
 			available_items.append_array(items)
 	
 	mirrored_items = available_items.duplicate()
 	
+
+func roll(selected_probability_type: ProbabilityMode = probability_type) -> Array[LootItem]:
+	var items_rolled: Array[LootItem] = []
 	
-func create_from_dictionary(items: Array[Dictionary]= []) -> void:
-	if not items.is_empty():
-		for item: Dictionary in items:
-			available_items.append(LootItem.create_from(item))
+	match selected_probability_type:
+		ProbabilityMode.Weight:
+			pass
+		ProbabilityMode.RollTier:
+			pass
+	
+	
+	return items_rolled
+
+
+func _prepare_weight() -> float:
+	var total_weight: float = 0.0
+	
+	for item: LootItem in mirrored_items:
+		item.reset_accum_weight()
+		
+		total_weight += item.weight
+		item.total_accum_weight = total_weight
+	
+	
+	return total_weight
 
 
 func change_probability_type(new_type: ProbabilityMode) -> void:
 	probability_type = new_type
+
+
+func add_items(items: Array[LootItem] = []) -> void:
+	available_items.append_array(PluginUtilities.remove_duplicates(items))
+	mirrored_items = available_items.duplicate()
+
+
+func add_item(item: LootItem) -> void:
+	available_items.append(item)
+	available_items = PluginUtilities.remove_duplicates(available_items)
+	
+
+func remove_items(items: Array[LootItem] = []) -> void:
+	available_items = available_items.filter(func(item: LootItem): return not item in items)
+	
+
+func remove_item(item: LootItem) -> void:
+	available_items.erase(item)
+	mirrored_items = available_items.duplicate()
+	
+
+func _create_from_dictionary(items: Array[Dictionary]= []) -> void:
+	if not items.is_empty():
+		for item: Dictionary in items:
+			available_items.append(LootItem.create_from(item))
+
+		

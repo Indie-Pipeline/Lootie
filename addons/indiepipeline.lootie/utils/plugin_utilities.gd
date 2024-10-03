@@ -121,3 +121,29 @@ static func remove_files_recursive(path: String, regex: RegEx = null) -> void:
 		directory.remove(path)
 	else:
 		push_error("PluginUtilities->remove_recursive: An error %s happened open directory: %s " % [DirAccess.get_open_error(), path])
+
+
+static func remove_duplicates(array: Array[Variant]) -> Array[Variant]:
+	var cleaned_array := []
+	
+	for element in array:
+		if not cleaned_array.has(element):
+			cleaned_array.append(element)
+		
+	return cleaned_array
+	
+static func value_is_between(number: int, min_value: int, max_value: int, inclusive: = true) -> bool:
+	if inclusive:
+		return number >= min(min_value, max_value) and number <= max(min_value, max_value)
+	else :
+		return number > min(min_value, max_value) and number < max(min_value, max_value)
+
+
+static func decimal_value_is_between(number: float, min_value: float, max_value: float, inclusive: = true, precision: float = 0.00001) -> bool:
+	if inclusive:
+		min_value -= precision
+		max_value += precision
+
+	return number >= min(min_value, max_value) and number <= max(min_value, max_value)
+
+	
