@@ -32,25 +32,28 @@ enum ProbabilityMode {
 ## A little bias that is added to the total weight to increase the difficulty to drop more items
 @export var extra_weight_bias: float = 0.0
 @export_group("Roll tier")
-@export var limit_max_roll_to_maximum_from_available_items: bool = false:
+@export var limit_max_roll_tier_to_maximum_from_available_items: bool = false:
 	set(value):
-		if value != limit_max_roll_to_maximum_from_available_items:
-			limit_max_roll_to_maximum_from_available_items = value
+		if value != limit_max_roll_tier_to_maximum_from_available_items:
+			limit_max_roll_tier_to_maximum_from_available_items = value
 			
 			if value:
-				max_roll = max_current_rarity_roll()
+				max_roll_tier = max_current_rarity_roll()
 
-## Each time a random number between 0 and max roll will be generated, based on this result if the number
-## fits on one of the rarity roll ranges, items of this rarity will be picked randomly
-@export var max_roll: float = 100.0:
+@export var min_roll_tier: float = 0.0:
 	set(value):
-		if limit_max_roll_to_maximum_from_available_items:
+		min_roll_tier = absf(value)
+## Each time a random number between min_roll_tier and max roll will be generated, based on this result if the number
+## fits on one of the rarity roll ranges, items of this rarity will be picked randomly
+@export var max_roll_tier: float = 100.0:
+	set(value):
+		if limit_max_roll_tier_to_maximum_from_available_items:
 			var max_available_roll = max_current_rarity_roll()
 			
 			if max_available_roll:
-				max_roll = clampf(absf(value), 0.0, max_available_roll)
+				max_roll_tier = clampf(absf(value), 0.0, max_available_roll)
 		else:
-			max_roll = absf(value)
+			max_roll_tier = absf(value)
 
 var mirrored_items: Array[LootItem] = []
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -113,13 +116,13 @@ func roll(times: int = 1, except: Array[LootItem] = []) -> Array[LootItem]:
 	return items_rolled.slice(0, max_picks)
 
 
-func roll_items_by_tier(selected_items:  Array[LootItem] = mirrored_items, selected_max_roll: float = max_roll) -> Array[LootItem]:
+func roll_items_by_tier(selected_items:  Array[LootItem] = mirrored_items, selected_min_roll_tier: float = min_roll_tier, selected_max_roll_tier: float = max_roll_tier) -> Array[LootItem]:
 	var items_rolled: Array[LootItem] = []
-	var item_rarity_roll = randf_range(0.0, clampf(selected_max_roll, 0, max_current_rarity_roll()))
+	var item_rarity_roll = randf_range(selected_min_roll_tier, clampf(selected_max_roll_tier, 0, max_current_rarity_roll()))
 
 	var current_roll_items = items_with_rarity_available(selected_items).filter(
 		func(item: LootItem):
-			return PluginUtilities.decimal_value_is_between(item_rarity_roll, item.rarity.min_roll, item.rarity.max_roll)
+			return PluginUtilities.decimal_value_is_between(item_rarity_roll, item.rarity.min_roll_tier, item.rarity.max_roll_tier)
 			)
 	
 	
@@ -156,7 +159,7 @@ func max_current_rarity_roll(selected_items: Array[LootItem] = available_items) 
 	if max_available_roll:
 		return max_available_roll
 		
-	return max_roll
+	return max_roll_tier
 
 
 func items_with_rarity_available(items: Array[LootItem] = available_items) -> Array[LootItem]:
