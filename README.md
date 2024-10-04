@@ -25,6 +25,9 @@
 		- [LootItem](#lootitem)
 		- [LootItemRarity](#lootitemrarity)
 	- [Adding items to a LootieTable](#adding-items-to-a-lootietable)
+	- [🎲 Generating loot](#-generating-loot)
+		- [Using Weight mode](#using-weight-mode)
+		- [Using RollTier mode](#using-rolltier-mode)
 
 # 📦 Installation
 
@@ -209,7 +212,7 @@ func _ready() -> void:
 	// The not recommended way to add new items
 	lootie_table.loot_table_data.available_items.append(LootItem.new(...))
 	lootie_table.loot_table_data.available_items.append_array([LootItem.new(...), LootItem.new(...), LootItem.new(...)])
-a
+
 	//Remove items by passing an Array of resources or ids
 	lootie_table.remove_items([LootItem1, LootItem2])
 	lootie_table.remove_items_by_id("sword_1", "basic_potion")
@@ -217,6 +220,51 @@ a
 	//Remove item by passing the resource or the id
 	lootie_table.remove_item(LootItem)
 	lootie_table.remove_item_by_id("sword_1")
+```
 
+## 🎲 Generating loot
+
+The function `roll()` it's the only thing you need, it accepts a number of `times` to roll and `except` optional items that you do not want to appear in loot.
+
+The `LootieTable` uses the `LootTableData` that it uses as rules to generate loot based on the selected mode, **depending on your rules** it is possible for a roll **to return an empty array.** To avoid this you can define a `fixed_items_per_loot` that you always want to return.
+
+`func roll(times: int = loot_table_data.default_roll_times_each_generation, except: Array[LootItem] = []) -> Array[LootItem]:`
+
+```swift
+var items_rolled: Array[LootItem] = lootie_table.roll() // Roll times set on default value
+// Or
+var items_rolled: Array[LootItem] = lootie_table.roll(10) // Roll 10 times so they are more chances to appear items in the loot
+
+// You can change the probability type before rolling again
+lootie_table.change_probability_type(LootTableData.ProbabilityMode.RollTier)
+
+var items_rolled: Array[LootItem] = lootie_table.roll(3)
 
 ```
+
+### Using Weight mode
+
+`weight` needs to be greater than zero on each `LootItem` to be valid for this roll
+
+This method iterates through the available items, calculating their accumulative weights and randomly selecting items based on the accumulated weight values. It repeats this process for the specified `times` parameter, potentially returning up to `items_limit_per_loot` items while considering the `allow_duplicates` flag.
+
+**The more the weight of the item, the more chances to appear in the loot**.
+
+You can set the `extra_weight_bias` to increase the difficulty to generate the loot using `weight_mode`, this could be used to start with a high value and decrease it as the player progresses through the game e.g.
+
+### Using RollTier mode
+
+**The items needs to have a `LootItemRarity` set to be valid for this roll**
+
+This method generates random numbers within the specified `max_roll` range and compares them to the defined rarity tiers of the available items. Based on the roll results, it randomly selects items corresponding to the matching rarity tiers, repeating for the specified times parameter and potentially returning up to `items_limit_per_loot` while considering the `allow_duplicates` flag
+
+As you notice in `LootItemRarity` there are two properties that works as a range:
+
+- `min_roll`: The minimum roll value to be valid as posibly generated
+- `max_roll`: The maximum roll value to be valid as posibly generated.
+
+So if my item has a `min_roll` of 5 and `max_roll` of 20. Only values between 5 and 20 in each roll tier generation will be valid to return this item.
+
+Higher roll ranges for an item in `roll_tier` generations means more probabilities to be returned.
+
+Imagine I defined a `LootTable` with a `max_roll` of 100, so in each generation a random number between 0-100 will be randomly calculated. If the number is 7.55, items where this number falls within the valid range will be candidates for return.
