@@ -40,6 +40,8 @@ enum ProbabilityMode {
 @export var choose_all_possible_candidates_each_roll_tier: bool = false
 ## When choose_all_possible_candidates_each_roll is false, in each roll, this is the maximum number of items that can be added to the loot
 @export var number_of_items_that_can_be_selected_per_roll_tier: int = 1
+## The max roll value will be clamped to the maximum that can be found in the items available for this loot table. 
+## So if you set this value to 100 and in the items the maximun found it's 80, this last will be used instead of 100
 @export var limit_max_roll_tier_to_maximum_from_available_items: bool = false:
 	set(value):
 		if value != limit_max_roll_tier_to_maximum_from_available_items:

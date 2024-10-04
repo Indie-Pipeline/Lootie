@@ -20,7 +20,6 @@ func roll(times: int = loot_table_data.default_roll_times_each_generation, excep
 	var max_picks: int = min(loot_table_data.items_limit_per_loot, mirrored_items.size())
 	times = max(1, abs(times))
 	
-	print("ITEMS INIT ", mirrored_items.size())
 	for exception_items: LootItem in except:
 		mirrored_items.erase(exception_items)
 	
@@ -34,9 +33,7 @@ func roll(times: int = loot_table_data.default_roll_times_each_generation, excep
 						break
 					
 				if loot_table_data.fixed_items_per_loot > 0:
-					print("WHAT %d %d %d" % [items_rolled.size(), loot_table_data.fixed_items_per_loot,mirrored_items.size()])
 					while items_rolled.size() < loot_table_data.fixed_items_per_loot and mirrored_items.size() >= (loot_table_data.fixed_items_per_loot - items_rolled.size()):
-						print("entro")
 						items_rolled.append_array(roll_items_by_weight())
 			
 			LootTableData.ProbabilityMode.RollTier:
@@ -46,7 +43,7 @@ func roll(times: int = loot_table_data.default_roll_times_each_generation, excep
 					if items_rolled.size() >= max_picks:
 							break
 					
-				if loot_table_data.fixed_items_per_loot > 0:
+				if loot_table_data.fixed_items_per_loot > 0 and loot_table_data.items_with_rarity_available().size() >= loot_table_data.fixed_items_per_loot:
 					while items_rolled.size() < loot_table_data.fixed_items_per_loot and (not mirrored_items.is_empty() or mirrored_items.size() >= loot_table_data.fixed_items_per_loot):
 						items_rolled.append_array(roll_items_by_tier())
 			
@@ -65,12 +62,11 @@ func roll_items_by_weight() -> Array[LootItem]:
 	total_weight = _prepare_weight_on_items(mirrored_items)
 	mirrored_items.shuffle()
 	
-	var roll_result: float = rng.randf_range(0, total_weight)
+	var roll_result: float = snappedf(rng.randf_range(0, total_weight), 0.01)
 	
 	for looted_item: LootItem in mirrored_items.filter(func(item: LootItem): return roll_result <= item.accum_weight):
 		items_rolled.append(looted_item.duplicate())
 		
-	
 	if loot_table_data.choose_all_possible_candidates_each_roll_weight:
 		if not loot_table_data.allow_duplicates:
 			for looted_item: LootItem in items_rolled:
@@ -95,10 +91,10 @@ func roll_items_by_tier(selected_min_roll_tier: float = loot_table_data.min_roll
 		selected_min_roll_tier, 
 		clampf(selected_max_roll_tier, 0, loot_table_data.max_current_rarity_roll()) if loot_table_data.limit_max_roll_tier_to_maximum_from_available_items else selected_max_roll_tier
 		)
-
+	
 	var current_roll_items = loot_table_data.items_with_rarity_available(mirrored_items).filter(
 		func(item: LootItem):
-			return PluginUtilities.decimal_value_is_between(item_rarity_roll, item.rarity.min_roll_tier, item.rarity.max_roll_tier)
+			return PluginUtilities.decimal_value_is_between(snappedf(item_rarity_roll, 0.01), item.rarity.min_roll, item.rarity.max_roll)
 			)
 	
 	
@@ -107,12 +103,20 @@ func roll_items_by_tier(selected_min_roll_tier: float = loot_table_data.min_roll
 	items_rolled.append_array(current_roll_items)
 
 	if loot_table_data.choose_all_possible_candidates_each_roll_tier:
+		if not loot_table_data.allow_duplicates:
+			for looted_item: LootItem in items_rolled:
+				mirrored_items.erase(looted_item)
+			
 		return items_rolled
 	else:
 		## The assign method allow to keep the types of the original array so we avoid the type error on return
 		var result: Array[LootItem] = []
 		result.assign(PluginUtilities.pick_random_values(items_rolled, loot_table_data.number_of_items_that_can_be_selected_per_roll_tier))
-			
+		
+		if not loot_table_data.allow_duplicates:
+			for looted_item: LootItem in result:
+				mirrored_items.erase(looted_item)
+				
 		return result
 
 
