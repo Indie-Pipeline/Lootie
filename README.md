@@ -154,12 +154,16 @@ class_name LootItem extends Resource
 
 // The name of the item
 @export var name : String
+
 // A shortcut to display the name in short form for limited ui in screen
 @export var abbreviation : String
+
 // A description more detailed about this item
 @export_multiline var description : String
+
 // The weight value for this items to appear in a loot, the more the weight, more the chance to be looted
 @export var weight: float = 1.0
+
 // The grade of rarity for this item
 @export var rarity: LootItemRarity
 
