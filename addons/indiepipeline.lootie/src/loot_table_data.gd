@@ -50,6 +50,8 @@ enum ProbabilityMode {
 			if value:
 				max_roll_tier = max_current_rarity_roll()
 
+## Each time a random number between min_roll_tier and max roll will be generated, based on this result if the number
+## fits on one of the rarity roll ranges, items of this rarity will be picked randomly
 @export var min_roll_tier: float = 0.0:
 	set(value):
 		min_roll_tier = absf(value)
