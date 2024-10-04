@@ -132,6 +132,37 @@ static func remove_duplicates(array: Array[Variant]) -> Array[Variant]:
 		
 	return cleaned_array
 	
+	
+## Flatten any array with n dimensions recursively
+static func flatten(array: Array[Variant]):
+	var result := []
+	
+	for i in array.size():
+		if typeof(array[i]) >= TYPE_ARRAY:
+			result.append_array(flatten(array[i]))
+		else:
+			result.append(array[i])
+
+	return result
+
+
+static func pick_random_values(array: Array[Variant], items_to_pick: int = 1, duplicates: bool = true) -> Array[Variant]:
+	var result := []
+	var target = flatten(array.duplicate())
+	target.shuffle()
+	
+	items_to_pick = min(target.size(), items_to_pick)
+	
+	for i in range(items_to_pick):
+		var item = target.pick_random()
+		result.append(item)
+
+		if not duplicates:
+			target.erase(item)
+		
+	return result
+		
+
 static func value_is_between(number: int, min_value: int, max_value: int, inclusive: = true) -> bool:
 	if inclusive:
 		return number >= min(min_value, max_value) and number <= max(min_value, max_value)
